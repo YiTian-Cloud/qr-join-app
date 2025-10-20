@@ -1,48 +1,47 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { auth, db } from "../../../lib/firebase";
-import { signInAnonymously, onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, signInAnonymously } from "firebase/auth";
 import {
-  addDoc,
   collection,
   doc,
   getDoc,
-  onSnapshot,
-  orderBy,
-  query,
   serverTimestamp,
   setDoc,
-  where,
   type Timestamp,
 } from "firebase/firestore";
 
-type PostDoc = {
-  groupId: string;
-  authorUid: string;
-  type: "topic" | "event";
-  text: string;
-  createdAt: Timestamp | null;
-};
-
-type Post = PostDoc & { id: string };
+type InviteDoc = { groupId: string; createdAt?: Timestamp | null; active?: boolean };
+type GroupDoc = { name: string };
 
 export default function Join() {
-  // Read the dynamic segment from the client side
+  // read dynamic route /join/[code]
   const params = useParams<{ code: string | string[] }>();
   const raw = Array.isArray(params?.code) ? params.code[0] : params?.code ?? "";
   const code = raw.toUpperCase();
 
+  // auth & group state
   const [uid, setUid] = useState<string | null>(null);
-  const [displayName, setDisplayName] = useState("");
   const [groupId, setGroupId] = useState<string | null>(null);
   const [groupName, setGroupName] = useState<string>("…");
-  const [joined, setJoined] = useState(false);
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [text, setText] = useState("");
+  const [invalid, setInvalid] = useState(false);
 
-  // Ensure anonymous auth
+  // form state
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [joining, setJoining] = useState(false);
+
+  const joinDisabled = !name.trim() || !uid || !groupId || joining;
+
+  const groupUrl = useMemo(
+    () => (groupId ? `/group/${groupId}` : "#"),
+    [groupId]
+  );
+
+  // Ensure we have a (anonymous) user
   useEffect(() => {
     return onAuthStateChanged(auth, async (u) => {
       if (!u) {
@@ -54,125 +53,143 @@ export default function Join() {
     });
   }, []);
 
-  // Resolve invite code -> group
+  // Resolve invite code -> group, fetch name
   useEffect(() => {
     if (!code) return;
-    const load = async () => {
-      const invRef = doc(db, "invites", code);
-      const inv = await getDoc(invRef);
-      if (inv.exists()) {
-        const gid = inv.data().groupId as string;
-        setGroupId(gid);
-        const g = await getDoc(doc(db, "groups", gid));
-        if (g.exists()) setGroupName((g.data().name as string) ?? "Group");
-      } else {
+    (async () => {
+      const invSnap = await getDoc(doc(db, "invites", code));
+      if (!invSnap.exists()) {
+        setInvalid(true);
         setGroupName("Invalid invite code");
+        return;
       }
-    };
-    void load();
-  }, [code, db]);
+      const inv = invSnap.data() as InviteDoc;
+      const gid = inv.groupId;
+      setGroupId(gid);
 
-  // Live posts for this group
+      const gSnap = await getDoc(doc(db, "groups", gid));
+      if (gSnap.exists()) {
+        const g = gSnap.data() as GroupDoc;
+        setGroupName(g.name || "Group");
+      } else {
+        setGroupName("Group");
+      }
+    })();
+  }, [code]);
+
+  // If already a member, auto-redirect to the group page
   useEffect(() => {
-    if (!groupId) return;
-    const q = query(
-      collection(db, "posts"),
-      where("groupId", "==", groupId),
-      orderBy("createdAt", "desc")
-    );
-    return onSnapshot(q, (snap) => {
-      const items: Post[] = snap.docs.map((d) => {
-        const data = d.data() as Partial<PostDoc>;
-        return {
-          id: d.id,
-          groupId: data.groupId ?? "",
-          authorUid: data.authorUid ?? "",
-          type: (data.type as "topic" | "event") ?? "topic",
-          text: data.text ?? "",
-          createdAt: (data.createdAt as Timestamp | null) ?? null,
-        };
+    if (!uid || !groupId) return;
+    (async () => {
+      const mSnap = await getDoc(doc(db, "members", `${uid}_${groupId}`));
+      if (mSnap.exists()) {
+        window.location.href = `/group/${groupId}`;
+      }
+    })();
+  }, [uid, groupId]);
+
+  const handleJoin = async () => {
+    if (joinDisabled) return;
+    setJoining(true);
+    try {
+      // Create/overwrite membership doc with contact info
+      await setDoc(doc(db, "members", `${uid!}_${groupId!}`), {
+        uid,
+        groupId,
+        displayName: name.trim(),
+        phone: phone.trim(),
+        email: email.trim(),
+        joinedAt: serverTimestamp(),
+        role: "member",
       });
-      setPosts(items);
-    });
-  }, [groupId]);
 
-  const doJoin = async () => {
-    if (!uid || !groupId || !displayName.trim()) return;
-    await setDoc(doc(db, "members", `${uid}_${groupId}`), {
-      uid,
-      groupId,
-      displayName: displayName.trim(),
-      joinedAt: serverTimestamp(),
-      role: "member",
-    });
-    setJoined(true);
-  };
+      // (Optional) also store a profile doc by uid (handy to reuse later)
+      await setDoc(
+        doc(db, "profiles", uid!),
+        {
+          uid,
+          displayName: name.trim(),
+          phone: phone.trim(),
+          email: email.trim(),
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
 
-  const postTopic = async () => {
-    if (!uid || !groupId || !text.trim()) return;
-    await addDoc(collection(db, "posts"), {
-      groupId,
-      authorUid: uid,
-      type: "topic",
-      text: text.trim(),
-      createdAt: serverTimestamp(),
-    });
-    setText("");
+      // Go straight to the group page (members + announcements)
+      window.location.href = `/group/${groupId}`;
+    } finally {
+      setJoining(false);
+    }
   };
 
   return (
     <main className="mx-auto max-w-xl p-6">
       <h1 className="text-2xl font-semibold mb-2">{groupName}</h1>
-      <p className="text-sm text-gray-600 mb-4">Invite code: {code}</p>
+      <p className="text-sm text-gray-600 mb-4">
+        Invite code: <span className="font-mono">{code}</span>
+      </p>
 
-      {!joined && (
-        <div className="rounded-2xl bg-white p-4 shadow mb-6">
-          <label className="block text-sm mb-2">Your display name</label>
+      {invalid ? (
+        <div className="rounded-2xl bg-white p-4 shadow">
+          <p className="text-sm text-red-600">This invite code is not valid.</p>
+          <a href="/" className="mt-3 inline-block text-sm text-blue-600 hover:underline">
+            ← Back to Home
+          </a>
+        </div>
+      ) : (
+        <div className="rounded-2xl bg-white p-4 shadow">
+          <h2 className="font-medium mb-3">Join this group</h2>
+
+          <label className="block text-sm mb-1">Name</label>
           <input
-            className="w-full rounded-xl border px-3 py-2 focus:outline-none focus:ring"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            placeholder="e.g., Eric"
+            className="w-full rounded-xl border px-3 py-2 mb-3 focus:outline-none focus:ring"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Your full name"
           />
+
+          <label className="block text-sm mb-1">Phone</label>
+          <input
+            className="w-full rounded-xl border px-3 py-2 mb-3 focus:outline-none focus:ring"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="(optional) e.g., +1 415 555 0123"
+            inputMode="tel"
+          />
+
+          <label className="block text-sm mb-1">Email</label>
+          <input
+            className="w-full rounded-xl border px-3 py-2 mb-3 focus:outline-none focus:ring"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="(optional) you@example.com"
+            inputMode="email"
+          />
+
           <button
-            onClick={doJoin}
-            className="mt-3 rounded-xl bg-black px-4 py-2 text-white disabled:opacity-50"
-            disabled={!displayName.trim() || !uid || !groupId}
+            onClick={handleJoin}
+            className="rounded-xl bg-black px-4 py-2 text-white disabled:opacity-50"
+            disabled={joinDisabled}
           >
-            Join group
+            {joining ? "Joining…" : "Join group"}
           </button>
-          <p className="mt-2 text-xs text-gray-500">
-            Anonymous sign-in, no email required (you can add later).
+
+          {groupId && (
+            <a
+              href={groupUrl}
+              className="ml-3 text-sm text-blue-600 hover:underline"
+            >
+              View group page
+            </a>
+          )}
+
+          <p className="mt-3 text-xs text-gray-500">
+            Your name, phone, and email will be visible to group admins (and
+            members if you choose to display it later).
           </p>
         </div>
       )}
-
-      <div className="rounded-2xl bg-white p-4 shadow">
-        <h2 className="font-medium mb-3">Share something</h2>
-        <textarea
-          className="w-full rounded-xl border p-3 focus:outline-none focus:ring"
-          rows={3}
-          placeholder="Topic or event announcement…"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-        />
-        <button
-          onClick={postTopic}
-          className="mt-3 rounded-xl bg-black px-4 py-2 text-white disabled:opacity-50"
-          disabled={!text.trim()}
-        >
-          Post
-        </button>
-      </div>
-
-      <div className="mt-6 space-y-3">
-        {posts.map((p) => (
-          <div key={p.id} className="rounded-2xl bg-white p-4 shadow">
-            <p className="text-sm text-gray-500">{p.type === "event" ? "Event" : "Topic"}</p>
-            <p className="mt-1">{p.text}</p>
-          </div>
-        ))}
-      </div>
     </main>
   );
 }
