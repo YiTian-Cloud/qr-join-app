@@ -1,6 +1,11 @@
-import { initializeApp, getApps } from "firebase/app";
-import { getAuth } from "firebase/auth";
+// src/lib/firebase.ts
+import { initializeApp, getApp, getApps } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
+import {
+  getAuth,
+  setPersistence,
+  browserLocalPersistence,
+} from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FB_API_KEY!,
@@ -11,6 +16,17 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FB_APP_ID!,
 };
 
-export const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
-export const auth = getAuth(app);
+// Ensure we only init once (Next.js can import modules multiple times)
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+
 export const db = getFirestore(app);
+export const auth = getAuth(app);
+
+// Set persistent auth only in the browser (avoid SSR build-time issues)
+if (typeof window !== "undefined") {
+  setPersistence(auth, browserLocalPersistence).catch(() => {
+    // ignore one-off persistence errors
+  });
+}
+
+export default app;
