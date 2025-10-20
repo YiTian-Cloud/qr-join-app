@@ -14,16 +14,28 @@ import {
   serverTimestamp,
   setDoc,
   where,
+  type Timestamp,
 } from "firebase/firestore";
 
+type PostDoc = {
+  groupId: string;
+  authorUid: string;
+  type: "topic" | "event";
+  text: string;
+  createdAt: Timestamp | null;
+};
+
+type Post = PostDoc & { id: string };
+
 export default function Join({ params }: { params: { code: string } }) {
-  const { code } = params;
+  const code = params.code.toUpperCase();
+
   const [uid, setUid] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState("");
   const [groupId, setGroupId] = useState<string | null>(null);
   const [groupName, setGroupName] = useState<string>("…");
   const [joined, setJoined] = useState(false);
-  const [posts, setPosts] = useState<any[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [text, setText] = useState("");
 
   // Ensure anonymous auth
@@ -38,18 +50,20 @@ export default function Join({ params }: { params: { code: string } }) {
     });
   }, []);
 
-  // Resolve invite code → group
+  // Resolve invite code -> group
   useEffect(() => {
     const load = async () => {
-      const inv = await getDoc(doc(db, "invites", code.toUpperCase()));
+      const inv = await getDoc(doc(db, "invites", code));
       if (inv.exists()) {
         const gid = inv.data().groupId as string;
         setGroupId(gid);
         const g = await getDoc(doc(db, "groups", gid));
-        if (g.exists()) setGroupName(g.data().name);
+        if (g.exists()) setGroupName((g.data().name as string) ?? "Group");
+      } else {
+        setGroupName("Invalid invite code");
       }
     };
-    load();
+    void load();
   }, [code]);
 
   // Live posts for this group
@@ -61,13 +75,23 @@ export default function Join({ params }: { params: { code: string } }) {
       orderBy("createdAt", "desc")
     );
     return onSnapshot(q, (snap) => {
-      setPosts(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      const items: Post[] = snap.docs.map((d) => {
+        const data = d.data() as Partial<PostDoc>;
+        return {
+          id: d.id,
+          groupId: data.groupId ?? "",
+          authorUid: data.authorUid ?? "",
+          type: (data.type as "topic" | "event") ?? "topic",
+          text: data.text ?? "",
+          createdAt: (data.createdAt as Timestamp | null) ?? null,
+        };
+      });
+      setPosts(items);
     });
   }, [groupId]);
 
   const doJoin = async () => {
     if (!uid || !groupId || !displayName.trim()) return;
-    // IMPORTANT: membership doc id must be `${uid}_${groupId}` (matches your Firestore rules)
     await setDoc(doc(db, "members", `${uid}_${groupId}`), {
       uid,
       groupId,
@@ -93,7 +117,7 @@ export default function Join({ params }: { params: { code: string } }) {
   return (
     <main className="mx-auto max-w-xl p-6">
       <h1 className="text-2xl font-semibold mb-2">{groupName}</h1>
-      <p className="text-sm text-gray-600 mb-4">Invite code: {code.toUpperCase()}</p>
+      <p className="text-sm text-gray-600 mb-4">Invite code: {code}</p>
 
       {!joined && (
         <div className="rounded-2xl bg-white p-4 shadow mb-6">
@@ -138,7 +162,9 @@ export default function Join({ params }: { params: { code: string } }) {
       <div className="mt-6 space-y-3">
         {posts.map((p) => (
           <div key={p.id} className="rounded-2xl bg-white p-4 shadow">
-            <p className="text-sm text-gray-500">{p.type === "event" ? "Event" : "Topic"}</p>
+            <p className="text-sm text-gray-500">
+              {p.type === "event" ? "Event" : "Topic"}
+            </p>
             <p className="mt-1">{p.text}</p>
           </div>
         ))}
