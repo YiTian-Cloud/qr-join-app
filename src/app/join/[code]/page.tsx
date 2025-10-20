@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import { auth, db } from "../../../lib/firebase";
 import { signInAnonymously, onAuthStateChanged } from "firebase/auth";
 import {
@@ -27,8 +28,11 @@ type PostDoc = {
 
 type Post = PostDoc & { id: string };
 
-export default function Join({ params }: { params: { code: string } }) {
-  const code = params.code.toUpperCase();
+export default function Join() {
+  // Read the dynamic segment from the client side
+  const params = useParams<{ code: string | string[] }>();
+  const raw = Array.isArray(params?.code) ? params.code[0] : params?.code ?? "";
+  const code = raw.toUpperCase();
 
   const [uid, setUid] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState("");
@@ -52,8 +56,10 @@ export default function Join({ params }: { params: { code: string } }) {
 
   // Resolve invite code -> group
   useEffect(() => {
+    if (!code) return;
     const load = async () => {
-      const inv = await getDoc(doc(db, "invites", code));
+      const invRef = doc(db, "invites", code);
+      const inv = await getDoc(invRef);
       if (inv.exists()) {
         const gid = inv.data().groupId as string;
         setGroupId(gid);
@@ -64,7 +70,7 @@ export default function Join({ params }: { params: { code: string } }) {
       }
     };
     void load();
-  }, [code]);
+  }, [code, db]);
 
   // Live posts for this group
   useEffect(() => {
@@ -162,9 +168,7 @@ export default function Join({ params }: { params: { code: string } }) {
       <div className="mt-6 space-y-3">
         {posts.map((p) => (
           <div key={p.id} className="rounded-2xl bg-white p-4 shadow">
-            <p className="text-sm text-gray-500">
-              {p.type === "event" ? "Event" : "Topic"}
-            </p>
+            <p className="text-sm text-gray-500">{p.type === "event" ? "Event" : "Topic"}</p>
             <p className="mt-1">{p.text}</p>
           </div>
         ))}
