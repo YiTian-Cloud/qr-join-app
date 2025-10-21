@@ -15,7 +15,7 @@ function initFirebase(): FirebaseApp | null {
     measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
   }
   if (!cfg.apiKey) {
-    console.error('Missing Firebase envs'); 
+    console.error('Missing Firebase envs (NEXT_PUBLIC_FIREBASE_*)')
     return null
   }
   return getApps()[0] ?? initializeApp(cfg)
@@ -30,13 +30,13 @@ export default function MeClient() {
     if (!app) return
     const auth = getAuth(app)
     const unsub = onAuthStateChanged(auth, (u) => {
-      setUser(u)
+      setUser(u ?? null)
       setReady(true)
     })
     return () => unsub()
   }, [])
 
-  if (!ready) return <div>Signing in…</div>
-  if (!user) return <div>Not signed in.</div>
-  return <div>Hello, {user.displayName ?? user.email}</div>
+  if (!ready) return <div className="p-6">Signing in…</div>
+  if (!user) return <div className="p-6">Not signed in.</div>
+  return <div className="p-6">Hello, {user.displayName ?? user.email}</div>
 }
