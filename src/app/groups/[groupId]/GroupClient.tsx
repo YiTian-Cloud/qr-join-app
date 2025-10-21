@@ -2,9 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { initializeApp, getApps } from 'firebase/app'
-import {
-  getFirestore, doc, getDoc, collection, getDocs
-} from 'firebase/firestore'
+import { getFirestore, doc, getDoc, collection, getDocs } from 'firebase/firestore'
 
 function getDb() {
   const cfg = {
@@ -27,11 +25,9 @@ export default function GroupClient({ groupId }: { groupId: string }) {
     (async () => {
       try {
         const db = getDb()
-        const gRef = doc(db, 'groups', groupId)
-        const gSnap = await getDoc(gRef)
+        const gSnap = await getDoc(doc(db, 'groups', groupId))
         if (gSnap.exists()) setGroup({ id: gSnap.id, ...gSnap.data() })
 
-        // adjust if your schema differs (e.g., memberIds array)
         const mSnap = await getDocs(collection(db, 'groups', groupId, 'members'))
         setMembers(mSnap.docs.map(d => ({ id: d.id, ...(d.data() as any) })))
       } finally {
