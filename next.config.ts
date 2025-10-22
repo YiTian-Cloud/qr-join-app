@@ -1,7 +1,9 @@
-// next.config.js
+/** @type {import('next').NextConfig} */
 const nextConfig = {
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },
-  distDir: 'Next.js', // TEMP: align to Vercel’s expectation
+  // Force a visible build dir so we can verify output
+  //distDir: 'build',
 };
+
 module.exports = nextConfig;

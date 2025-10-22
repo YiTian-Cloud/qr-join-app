@@ -1,0 +1,11 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/join/[code]/page": "app/join/[code]/page.js",
+  "/groups/page": "app/groups/page.js",
+  "/page": "app/page.js",
+  "/qr/page": "app/qr/page.js",
+  "/me/page": "app/me/page.js",
+  "/groups/[groupId]/page": "app/groups/[groupId]/page.js",
+  "/join/page": "app/join/page.js"
+}
