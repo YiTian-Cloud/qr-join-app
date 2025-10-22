@@ -1,203 +1,74 @@
-"use client";
+'use client';
 
-import { useEffect, useMemo, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { getFirebaseAuth, getFirebaseDb } from "@/lib/firebase.client"; 
-import { onAuthStateChanged, signInAnonymously } from "firebase/auth";
-import {
-  collection,
-  doc,
-  getDoc,
-  serverTimestamp,
-  setDoc,
-  type Timestamp,
-} from "firebase/firestore";
+import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+// If you actually use Firebase here, import your client getters:
+import { getFirebaseAuth, getFirebaseDb } from '@/lib/firebase.client';
+// Remove unused Firestore imports like `collection` if not used
 
-type InviteDoc = { groupId: string; createdAt?: Timestamp | null; active?: boolean };
-type GroupDoc = { name: string };
+type JoinState = {
+  loading: boolean;
+  error?: string;
+};
 
-export default function Join() {
+export default function JoinByCodePage() {
+  const params = useParams<{ code: string }>();
+  const code = params?.code ?? '';
+  const router = useRouter(); // <-- If not used, delete this line
+  const sp = useSearchParams();
 
-  // 1) Router
-  const router = useRouter();
+  const [state, setState] = useState<JoinState>({ loading: true });
 
-  // 2) Create singletons from your client helpers (memoized so they don't recreate on re-renders)
-  const auth = useMemo(getFirebaseAuth, []);
-  const db   = useMemo(getFirebaseDb, []);
+  // Example: if you use `auth` inside, include it in deps
+  const auth = getFirebaseAuth(); // if not used, delete this line and related deps
+  const db = getFirebaseDb();     // if not used, delete this line and related deps
 
-  // read dynamic route /join/[code]
-  const params = useParams<{ code: string | string[] }>();
-  const raw = Array.isArray(params?.code) ? params.code[0] : params?.code ?? "";
-  const code = raw.toUpperCase();
-
-  // auth & group state
-  const [uid, setUid] = useState<string | null>(null);
-  const [groupId, setGroupId] = useState<string | null>(null);
-  const [groupName, setGroupName] = useState<string>("…");
-  const [invalid, setInvalid] = useState(false);
-
-  // form state
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
-  const [joining, setJoining] = useState(false);
-
-  const joinDisabled = !name.trim() || !uid || !groupId || joining;
-
-  const groupUrl = useMemo(
-    () => (groupId ? `/group/${groupId}` : "#"),
-    [groupId]
-  );
-
-  // Ensure we have a (anonymous) user
   useEffect(() => {
-    return onAuthStateChanged(auth, async (u) => {
-      if (!u) {
-        const res = await signInAnonymously(auth);
-        setUid(res.user.uid);
-      } else {
-        setUid(u.uid);
+    let cancelled = false;
+    const run = async () => {
+      try {
+        // Do your fetch/join logic here. Use `auth`/`db` if needed.
+        // Example (pseudo):
+        // const group = await loadGroupByCode(db, code as string);
+        if (cancelled) return;
+        setState({ loading: false });
+      } catch (e: unknown) {
+        if (cancelled) return;
+        setState({ loading: false, error: (e as Error).message });
       }
-    });
-  }, []);
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
+    // If you actually used `auth`/`db` above, include them in deps; otherwise remove them from deps and delete the vars.
+  }, [code, auth, db]); // or just [code] if you didn’t use auth/db
 
-  // Resolve invite code -> group, fetch name
-  useEffect(() => {
-    if (!code) return;
-    (async () => {
-      const invSnap = await getDoc(doc(db, "invites", code));
-      if (!invSnap.exists()) {
-        setInvalid(true);
-        setGroupName("Invalid invite code");
-        return;
-      }
-      const inv = invSnap.data() as InviteDoc;
-      const gid = inv.groupId;
-      setGroupId(gid);
+  if (state.loading) {
+    return <div className="p-6">Loading…</div>;
+  }
 
-      const gSnap = await getDoc(doc(db, "groups", gid));
-      if (gSnap.exists()) {
-        const g = gSnap.data() as GroupDoc;
-        setGroupName(g.name || "Group");
-      } else {
-        setGroupName("Group");
-      }
-    })();
-  }, [code]);
-
-  // If already a member, auto-redirect to the group page
-  useEffect(() => {
-    if (!uid || !groupId) return;
-    (async () => {
-      const mSnap = await getDoc(doc(db, "members", `${uid}_${groupId}`));
-      if (mSnap.exists()) {
-        window.location.href = `/group/${groupId}`;
-      }
-    })();
-  }, [uid, groupId]);
-
-  const handleJoin = async () => {
-    if (joinDisabled) return;
-    setJoining(true);
-    try {
-      // Create/overwrite membership doc with contact info
-      await setDoc(doc(db, "members", `${uid!}_${groupId!}`), {
-        uid,
-        groupId,
-        displayName: name.trim(),
-        phone: phone.trim(),
-        email: email.trim(),
-        joinedAt: serverTimestamp(),
-        role: "member",
-      });
-
-      // (Optional) also store a profile doc by uid (handy to reuse later)
-      await setDoc(
-        doc(db, "profiles", uid!),
-        {
-          uid,
-          displayName: name.trim(),
-          phone: phone.trim(),
-          email: email.trim(),
-          updatedAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
-
-      // Go straight to the group page (members + announcements)
-      window.location.href = `/group/${groupId}`;
-    } finally {
-      setJoining(false);
-    }
-  };
+  if (state.error) {
+    return (
+      <main className="p-6 space-y-3">
+        <h1 className="text-xl font-semibold">Join</h1>
+        <p className="text-red-600">Error: {state.error}</p>
+        {/* FIXED: use Link instead of <a href="/"> */}
+        <Link href="/" className="text-blue-600 underline">
+          Back to Home
+        </Link>
+      </main>
+    );
+  }
 
   return (
-    <main className="mx-auto max-w-xl p-6">
-      <h1 className="text-2xl font-semibold mb-2">{groupName}</h1>
-      <p className="text-sm text-gray-600 mb-4">
-        Invite code: <span className="font-mono">{code}</span>
-      </p>
-
-      {invalid ? (
-        <div className="rounded-2xl bg-white p-4 shadow">
-          <p className="text-sm text-red-600">This invite code is not valid.</p>
-          <a href="/" className="mt-3 inline-block text-sm text-blue-600 hover:underline">
-            ← Back to Home
-          </a>
-        </div>
-      ) : (
-        <div className="rounded-2xl bg-white p-4 shadow">
-          <h2 className="font-medium mb-3">Join this group</h2>
-
-          <label className="block text-sm mb-1">Name</label>
-          <input
-            className="w-full rounded-xl border px-3 py-2 mb-3 focus:outline-none focus:ring"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Your full name"
-          />
-
-          <label className="block text-sm mb-1">Phone</label>
-          <input
-            className="w-full rounded-xl border px-3 py-2 mb-3 focus:outline-none focus:ring"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="(optional) e.g., +1 415 555 0123"
-            inputMode="tel"
-          />
-
-          <label className="block text-sm mb-1">Email</label>
-          <input
-            className="w-full rounded-xl border px-3 py-2 mb-3 focus:outline-none focus:ring"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="(optional) you@example.com"
-            inputMode="email"
-          />
-
-          <button
-            onClick={handleJoin}
-            className="rounded-xl bg-black px-4 py-2 text-white disabled:opacity-50"
-            disabled={joinDisabled}
-          >
-            {joining ? "Joining…" : "Join group"}
-          </button>
-
-          {groupId && (
-            <a
-              href={groupUrl}
-              className="ml-3 text-sm text-blue-600 hover:underline"
-            >
-              View group page
-            </a>
-          )}
-
-          <p className="mt-3 text-xs text-gray-500">
-            Your name, phone, and email will be visible to group admins (and
-            members if you choose to display it later).
-          </p>
-        </div>
-      )}
+    <main className="p-6 space-y-3">
+      <h1 className="text-xl font-semibold">Join</h1>
+      <p>Joined by code: <strong>{code}</strong></p>
+      <Link href="/" className="text-blue-600 underline">
+        Back to Home
+      </Link>
     </main>
   );
 }

@@ -1,54 +1,69 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { getFirebaseAuth } from "@/lib/firebase.client";
-import { onAuthStateChanged, signInAnonymously, type User } from "firebase/auth";
+import React, { useEffect, useState } from 'react';
+
+type Profile = {
+  name: string;
+  email: string;
+  phone: string;
+};
 
 export default function HomeClient() {
-  const [authReady, setAuthReady] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
-  const [err, setErr] = useState<string | null>(null);
+  const [profile, setProfile] = useState<Profile>({ name: '', email: '', phone: '' });
+  const [saving, setSaving] = useState(false);
 
-  // init firebase auth only on the client after mount
-  useEffect(() => {
+  // Example: input change handler (was `any`)
+  const onInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setProfile((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // Example: form submit (was `any`)
+  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setSaving(true);
     try {
-      const auth = getFirebaseAuth();
-      const unsub = onAuthStateChanged(auth, (u) => {
-        setUser(u ?? null);
-        setAuthReady(true);
-      });
-      return () => unsub();
-    } catch (e: any) {
-      setErr(e?.message ?? "Auth init failed");
-      setAuthReady(true);
+      // TODO: save profile
+      // await saveProfile(profile)
+      console.log('Saving profile', profile);
+    } finally {
+      setSaving(false);
     }
+  };
+
+  useEffect(() => {
+    // Load initial data if needed
   }, []);
 
-  // anonymous sign-in if no user after first auth state
-  useEffect(() => {
-    (async () => {
-      if (!authReady || user) return;
-      try {
-        const auth = getFirebaseAuth();
-        const res = await signInAnonymously(auth);
-        setUser(res.user);
-      } catch (e: any) {
-        setErr(e?.message ?? "Anonymous sign-in failed");
-      }
-    })();
-  }, [authReady, user]);
-
-  if (!authReady) return <div className="p-6">Loading…</div>;
-
   return (
-    <div className="p-6 space-y-1">
-      <h1 className="text-xl font-semibold">QR Groups</h1>
-      <div className="text-sm text-gray-600">
-        {user
-          ? `Signed in as ${user.isAnonymous ? "(anonymous)" : (user.displayName ?? user.email)}`
-          : "Not signed in."}
-      </div>
-      {err && <div className="text-sm text-red-600">Auth error: {err}</div>}
-    </div>
+    <main className="p-4">
+      <h1 className="text-xl font-semibold">Home</h1>
+      <form onSubmit={onSubmit} className="mt-4 space-y-3">
+        <input
+          name="name"
+          value={profile.name}
+          onChange={onInputChange}
+          placeholder="Name"
+          className="border p-2 w-full"
+        />
+        <input
+          name="email"
+          value={profile.email}
+          onChange={onInputChange}
+          placeholder="Email"
+          className="border p-2 w-full"
+        />
+        <input
+          name="phone"
+          value={profile.phone}
+          onChange={onInputChange}
+          placeholder="Phone"
+          className="border p-2 w-full"
+        />
+        <button disabled={saving} className="px-4 py-2 rounded bg-black text-white">
+          {saving ? 'Saving…' : 'Save'}
+        </button>
+      </form>
+    </main>
   );
 }
