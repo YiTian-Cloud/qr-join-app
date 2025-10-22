@@ -5,63 +5,35 @@ import { useMemo, useState } from 'react';
 import QRCode from 'react-qr-code';
 
 export default function HomeClient() {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
+  // if you generate a unique code after Save, keep it here
+  const [code, setCode] = useState<string>('');
 
-  // Whatever schema you want to encode; can be JSON, URL, etc.
-  const qrPayload = useMemo(() => {
-    // Example as a compact URL; change to your own format
-    const params = new URLSearchParams();
-    if (name) params.set('n', name);
-    if (email) params.set('e', email);
-    if (phone) params.set('p', phone);
-    const url = `qr-join://join?${params.toString()}`;
-    return params.toString() ? url : 'qr-join://join?demo=1';
-  }, [name, email, phone]);
+  // set this to your live prod origin
+  const PROD_ORIGIN = 'https://qr-join-app-9zqm-q59xhl817-yitian-clouds-projects.vercel.app';
 
-  const onSave = async () => {
-    // Your existing save logic (e.g., Firebase) goes here
-    // await saveToFirestore({ name, email, phone });
-    // then maybe toast/clear fields, etc.
-  };
+  const joinUrl = useMemo(() => {
+    const base =
+      typeof window !== 'undefined' && window.location?.origin
+        ? window.location.origin
+        : PROD_ORIGIN;
+
+    // if you have a per-friend code, use /join/<code>
+    return code ? `${base}/join/${encodeURIComponent(code)}` : `${base}/join`;
+  }, [code]);
 
   return (
     <div style={{ maxWidth: 520, margin: '40px auto', padding: 24 }}>
       <h1 style={{ fontSize: 24, marginBottom: 16 }}>Home</h1>
 
-      <div style={{ display: 'grid', gap: 12 }}>
-        <input
-          placeholder="Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          style={{ padding: 10 }}
-        />
-        <input
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          style={{ padding: 10 }}
-        />
-        <input
-          placeholder="Phone"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          style={{ padding: 10 }}
-        />
+      {/* your existing inputs & Save logic here; when you Save, setCode(...) if you want per-friend URLs */}
 
-        <button onClick={onSave} style={{ padding: '10px 14px' }}>
-          Save
-        </button>
-      </div>
-
-      {/* QR Preview */}
       <div style={{ marginTop: 24, textAlign: 'center' }}>
         <div style={{ display: 'inline-block', background: 'white', padding: 16 }}>
-          <QRCode value={qrPayload} size={200} />
+          <QRCode value={joinUrl} size={220} />
         </div>
-        <div style={{ marginTop: 8, fontSize: 12, color: '#555' }}>
-          Encoded: <code>{qrPayload}</code>
+        <div style={{ marginTop: 8, fontSize: 12 }}>
+          Share this QR. It opens:&nbsp;
+          <a href={joinUrl} target="_blank" rel="noreferrer">{joinUrl}</a>
         </div>
       </div>
     </div>
