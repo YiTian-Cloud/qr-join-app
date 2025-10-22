@@ -2,7 +2,7 @@
   "name": "QR Join",
   "short_name": "QR Join",
   "description": "Join via QR and save to home screen.",
-  "start_url": "/",
+  "start_url": "/join",
   "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",

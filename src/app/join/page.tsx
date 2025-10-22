@@ -1,46 +1,33 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-
-function useIosA2hsHint() {
-  const [show, setShow] = useState(false);
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const ua = window.navigator.userAgent || '';
-    const isiOS = /iPad|iPhone|iPod/.test(ua);
-    const isStandalone = (window.navigator as any).standalone === true || window.matchMedia('(display-mode: standalone)').matches;
-    const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
-    if (isiOS && isSafari && !isStandalone) {
-      setShow(true);
-    }
-  }, []);
-  return show;
-}
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function JoinPage() {
-  const showHint = useIosA2hsHint();
+  const router = useRouter();
+  const [name, setName]   = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+
+  async function onJoin() {
+    // TODO: persist to Firestore or your backend here
+    // await addDoc(collection(db, 'members'), { name, email, phone, groupId: 'golf' });
+
+    // Navigate to the golf group after save
+    router.push('/groups/golf'); // you already have /groups/[groupId]
+  }
 
   return (
-    <div style={{ maxWidth: 520, margin: '32px auto', padding: 20 }}>
-      <h1 style={{ fontSize: 22, marginBottom: 12 }}>Join</h1>
-
-      {/* your friend’s form fields go here... */}
-
-      {showHint && (
-        <div style={{
-          marginTop: 16,
-          padding: '10px 12px',
-          borderRadius: 8,
-          background: '#fffbea',
-          border: '1px solid #f5e0a1',
-          color: '#7a5e00',
-          fontSize: 14
-        }}>
-          Tip: Add this app to your Home Screen —
-          open the <b>Share</b> menu <span aria-label="share" role="img">🔗</span> and choose
-          <b> Add to Home Screen</b>.
-        </div>
-      )}
+    <div style={{ maxWidth: 520, margin: '40px auto', padding: 24 }}>
+      <h1 style={{ fontSize: 24, marginBottom: 16 }}>Join the Golf Group</h1>
+      <div style={{ display: 'grid', gap: 12 }}>
+        <input placeholder="Name"  value={name}  onChange={(e)=>setName(e.target.value)}  style={{ padding: 10 }}/>
+        <input placeholder="Email" value={email} onChange={(e)=>setEmail(e.target.value)} style={{ padding: 10 }}/>
+        <input placeholder="Phone" value={phone} onChange={(e)=>setPhone(e.target.value)} style={{ padding: 10 }}/>
+        <button type="button" onClick={onJoin} style={{ padding: '10px 14px' }}>
+          Join
+        </button>
+      </div>
     </div>
   );
 }

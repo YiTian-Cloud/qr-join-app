@@ -1,33 +1,21 @@
-// src/app/HomeClient.tsx
 'use client';
 
-import { useMemo, useState } from 'react';
 import QRCode from 'react-qr-code';
+import { useMemo } from 'react';
 
 export default function HomeClient() {
-  // if you generate a unique code after Save, keep it here
-  const [code, setCode] = useState<string>('');
+  const PROD_ORIGIN = 'https://YOUR-DOMAIN.vercel.app'; // <-- put your prod origin
 
-  // set this to your live prod origin
-  const PROD_ORIGIN = 'https://qr-join-app-9zqm-q59xhl817-yitian-clouds-projects.vercel.app';
-
+  // Use /join or /join/golf (pick one)
   const joinUrl = useMemo(() => {
-    const base =
-      typeof window !== 'undefined' && window.location?.origin
-        ? window.location.origin
-        : PROD_ORIGIN;
-
-    // if you have a per-friend code, use /join/<code>
-    return code ? `${base}/join/${encodeURIComponent(code)}` : `${base}/join`;
-  }, [code]);
+    const base = typeof window !== 'undefined' ? window.location.origin : PROD_ORIGIN;
+    return `${base}/join`;           // or: `${base}/join/golf`
+  }, []);
 
   return (
     <div style={{ maxWidth: 520, margin: '40px auto', padding: 24 }}>
       <h1 style={{ fontSize: 24, marginBottom: 16 }}>Home</h1>
-
-      {/* your existing inputs & Save logic here; when you Save, setCode(...) if you want per-friend URLs */}
-
-      <div style={{ marginTop: 24, textAlign: 'center' }}>
+      <div style={{ textAlign: 'center' }}>
         <div style={{ display: 'inline-block', background: 'white', padding: 16 }}>
           <QRCode value={joinUrl} size={220} />
         </div>
