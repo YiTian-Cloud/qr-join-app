@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
-import { auth, db } from "../../../lib/firebase";
+import { useParams, useRouter } from "next/navigation";
+import { getFirebaseAuth, getFirebaseDb } from "@/lib/firebase.client"; 
 import { onAuthStateChanged, signInAnonymously } from "firebase/auth";
 import {
   collection,
@@ -17,6 +17,14 @@ type InviteDoc = { groupId: string; createdAt?: Timestamp | null; active?: boole
 type GroupDoc = { name: string };
 
 export default function Join() {
+
+  // 1) Router
+  const router = useRouter();
+
+  // 2) Create singletons from your client helpers (memoized so they don't recreate on re-renders)
+  const auth = useMemo(getFirebaseAuth, []);
+  const db   = useMemo(getFirebaseDb, []);
+
   // read dynamic route /join/[code]
   const params = useParams<{ code: string | string[] }>();
   const raw = Array.isArray(params?.code) ? params.code[0] : params?.code ?? "";
