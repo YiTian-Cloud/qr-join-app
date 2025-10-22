@@ -1,5 +1,11 @@
 // src/app/admin/members/page.tsx
 'use client';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+export const viewport = { themeColor: '#0ea5e9' };
+// ... your admin component code that imports from '@/lib/firebase.client'
+
 
 import { useEffect, useState } from 'react';
 import { db } from '@/lib/firebase.client';
