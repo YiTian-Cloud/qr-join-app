@@ -1,6 +1,6 @@
-// src/app/layout.tsx
 import type { ReactNode } from "react";
 import "./globals.css";
+import ClientInit from "@/components/ClientInit";  // <-- add this
 
 export const metadata = {
   title: "QR Groups",
@@ -10,7 +10,10 @@ export const metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <ClientInit />   {/* ensures firebase.client runs in the browser */}
+        {children}
+      </body>
     </html>
   );
 }
