@@ -23,3 +23,21 @@ export async function saveMember(formData: FormData) {
 
   redirect("/?joined=1");
 }
+export async function postAnnouncement(formData: FormData) {
+  const message = String(formData.get("message") ?? "").trim();
+  const name    = String(formData.get("name") ?? "").trim(); // optional field in the form
+
+  if (!message) {
+    redirect("/join?joined=1"); // nothing to post; just return to joined page
+  }
+
+  // Use the SAME DB client you used for saveMember.
+  // Example using Firestore (Admin SDK):
+  // await db.collection("announcements").add({
+  //   message,
+  //   name: name || "Anonymous",
+  //   createdAt: new Date()
+  // });
+
+  redirect("/join?joined=1");
+}
