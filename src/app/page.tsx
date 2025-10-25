@@ -1,9 +1,11 @@
 // src/app/page.tsx
 export const revalidate = false;
-
+import RedirectPWAHomeToJoin from "../components/RedirectPWAHomeToJoin";
 import { headers } from "next/headers";
 import QRDisplay from "./QRDisplay";
 import { saveMember } from "./actions";
+
+
 
 function getBaseUrlFromHeaders() {
   const h = headers();
@@ -22,10 +24,11 @@ export default function HomePage({ searchParams }: PageProps) {
       ? process.env.NEXT_PUBLIC_BASE_URL
       : getBaseUrlFromHeaders();
 
-  const qrValue = base ? `${base}/` : "";
+  const qrValue = base ? `${base}/join` : "";
   const joined = searchParams?.joined === "1";
 
   return (
+     <RedirectPWAHomeToJoin />  {/* ← add this line */}
     <main className="mx-auto max-w-xl p-6 space-y-6">
       <h1 className="text-2xl font-semibold">Golf Community — Join</h1>
 

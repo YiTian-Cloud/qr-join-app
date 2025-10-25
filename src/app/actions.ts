@@ -11,7 +11,7 @@ export async function saveMember(formData: FormData) {
 
   if (!name || !phone || !email) {
     // minimal guard; you can add better validation later
-    redirect("/?joined=0");
+    redirect("/?joined=1");
   }
 
   await db.collection("members").add({
