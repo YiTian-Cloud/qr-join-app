@@ -16,11 +16,13 @@ function getBaseUrlFromHeaders() {
 type PageProps = { searchParams?: { joined?: string } };
 
 export default function HomePage({ searchParams }: PageProps) {
-  const base =
+  const rawBase =
     process.env.NEXT_PUBLIC_BASE_URL && process.env.NEXT_PUBLIC_BASE_URL.length > 0
       ? process.env.NEXT_PUBLIC_BASE_URL
       : getBaseUrlFromHeaders();
 
+// remove any trailing slash to avoid //join
+const base = rawBase.replace(/\/+$/, "");
   // 👇 make the QR point to /join so scans land on the join page
   const qrValue = base ? `${base}/join` : "";
   const joined = searchParams?.joined === "1";
