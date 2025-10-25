@@ -4,6 +4,8 @@
 import { db } from "@/lib/firebaseAdmin";
 import { redirect } from "next/navigation";
 
+import { cookies } from "next/headers";
+
 export async function saveMember(formData: FormData) {
   const name  = String(formData.get("name")  || "").trim();
   const phone = String(formData.get("phone") || "").trim();
@@ -21,7 +23,12 @@ export async function saveMember(formData: FormData) {
     createdAt: Date.now(),
   });
 
-  redirect("/?joined=1");
+ // 2) Persist joined state for future renders (works across refresh/PWA)
+  cookies().set("joined", "1", { path: "/", maxAge: 60 * 60 * 24 * 7 }); // 7 days
+
+
+  // 3) Redirect to canonical /join (no query needed anymore)
+  redirect("/join");
 }
 export async function postAnnouncement(formData: FormData) {
   const message = String(formData.get("message") ?? "").trim();
@@ -39,5 +46,8 @@ export async function postAnnouncement(formData: FormData) {
   //   createdAt: new Date()
   // });
 
-  redirect("/join?joined=1");
+ // Keep user in "joined" state
+  cookies().set("joined", "1", { path: "/", maxAge: 60 * 60 * 24 * 7 });
+   // 3) Redirect to canonical /join (no query needed anymore)
+  redirect("/join");
 }

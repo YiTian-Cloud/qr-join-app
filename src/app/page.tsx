@@ -1,10 +1,10 @@
 export const revalidate = false;
 
-import { headers } from "next/headers";
+import { headers, cookies } from "next/headers";
 import Link from "next/link";
 import QRDisplay from "./QRDisplay";
 import { saveMember, postAnnouncement } from "./actions";
-import RedirectPWAHomeToJoin from "../components/RedirectPWAHomeToJoin"; // keep this if you added it
+import RedirectPWAHomeToJoin from "../components/RedirectPWAHomeToJoin";
 
 function getBaseUrlFromHeaders() {
   const h = headers();
@@ -21,9 +21,12 @@ export default function HomePage({ searchParams }: PageProps) {
       ? process.env.NEXT_PUBLIC_BASE_URL
       : getBaseUrlFromHeaders();
 
-  const base = rawBase.replace(/\/+$/, ""); // normalize trailing slash
+  const base = rawBase.replace(/\/+$/, "");
   const qrValue = base ? `${base}/join` : "";
-  const joined = searchParams?.joined === "1";
+
+  // 👇 NEW: also respect cookie so iOS refresh/param loss won’t reset the UI
+  const cookieJoined = cookies().get("joined")?.value === "1";
+  const joined = searchParams?.joined === "1" || cookieJoined;
 
   return (
     <>
@@ -31,7 +34,7 @@ export default function HomePage({ searchParams }: PageProps) {
       <main className="mx-auto max-w-xl p-6 space-y-6">
         <h1 className="text-2xl font-semibold">Golf Community — Join</h1>
 
-        {/* QR ALWAYS visible so next friend can scan */}
+        {/* QR always stays visible */}
         <section className="space-y-2">
           <QRDisplay value={qrValue} />
           <div className="text-xs text-gray-500 break-all">
@@ -45,7 +48,7 @@ export default function HomePage({ searchParams }: PageProps) {
               <strong>Welcome to our golf community!</strong>
             </div>
 
-            {/* Quick post box */}
+            {/* Post box */}
             <form action={postAnnouncement} className="space-y-2 rounded-md border p-4">
               <div className="text-sm font-medium">Post a message</div>
               <input
@@ -65,7 +68,6 @@ export default function HomePage({ searchParams }: PageProps) {
               </button>
             </form>
 
-            {/* Link to announcements feed */}
             <div>
               <Link href="/announcements" className="underline text-blue-600">
                 View announcements
@@ -73,7 +75,7 @@ export default function HomePage({ searchParams }: PageProps) {
             </div>
           </div>
         ) : (
-          /* Original join form */
+          // Original join form
           <form action={saveMember} className="space-y-3">
             <div className="space-y-1">
               <label htmlFor="name" className="block text-sm font-medium">Name</label>
