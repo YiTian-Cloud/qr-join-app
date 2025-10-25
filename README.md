@@ -75,13 +75,13 @@ git clone https://github.com/<your-username>/qr-groups.git
 cd qr-groups
 🔹 Install dependencies
 bash
-Copy code
+
 npm install
 🔹 Add environment variables
 Create a .env.local file in the project root:
 
 bash
-Copy code
+
 # Firebase client SDK
 NEXT_PUBLIC_FIREBASE_API_KEY=AIza...
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=qr-groups.firebaseapp.com
@@ -96,13 +96,13 @@ NEXT_PUBLIC_BASE_URL=https://qr-join-app-xxxx.vercel.app
 
 🔹 Run locally
 bash
-Copy code
+
 npm run dev
 Visit http://localhost:3000.
 
 🧩 2. File Structure
 bash
-Copy code
+
 src/
 ├── app/
 │   ├── page.tsx                 # Home page (QR + join form + welcome view)
@@ -166,7 +166,7 @@ E. Reset
 manifest.ts
 
 ts
-Copy code
+
 start_url: "/join",
 scope: "/",
 display: "standalone"
@@ -193,7 +193,7 @@ One-time
 Link repo:
 
 bash
-Copy code
+
 vercel link
 Add env vars via Vercel → Project → Settings → Environment Variables
 
@@ -203,7 +203,7 @@ Option A — Auto deploy when you push to GitHub main
 Option B — Manual
 
 bash
-Copy code
+
 vercel --prod
 ✅ Always verify the small “URL:” under your QR after deployment points to the Production domain (not a preview).
 
@@ -213,7 +213,7 @@ Run serverless logs: vercel logs <deployment-url>
 Run lint/format:
 
 bash
-Copy code
+
 npm run lint
 npx black .  # if using Python-style formatting tools
 Debug server actions: add console.log() in actions.ts — view logs in Vercel → Functions → Logs
@@ -238,7 +238,7 @@ MIT License © 2025 [Yi Tian]
 
 🧩 Appendix — Dev Commands
 bash
-Copy code
+
 # Run locally
 npm run dev
 
