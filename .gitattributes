@@ -1,0 +1,3 @@
+# Force GitHub Linguist to treat .ts and .tsx files as TypeScript
+*.ts linguist-language=TypeScript
+*.tsx linguist-language=TypeScript
