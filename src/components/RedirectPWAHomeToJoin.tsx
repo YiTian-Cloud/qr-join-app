@@ -1,14 +1,19 @@
+// src/components/RedirectPWAHomeToJoin.tsx
 "use client";
+
 import { useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
 
 export default function RedirectPWAHomeToJoin() {
+  const router = useRouter();
+  const pathname = usePathname();
+
   useEffect(() => {
-    const isStandalone =
-      window.matchMedia?.("(display-mode: standalone)").matches ||
-      (navigator as any).standalone === true; // iOS legacy flag
-    if (isStandalone && window.location.pathname === "/") {
-      window.location.replace("/join");
+    // Example: if PWA opens at "/", push to "/join"
+    if (pathname === "/") {
+      router.replace("/join");
     }
-  }, []);
+  }, [pathname, router]);
+
   return null;
 }
