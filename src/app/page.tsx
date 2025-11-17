@@ -5,6 +5,7 @@ import Link from "next/link";
 import QRDisplay from "./QRDisplay";
 import { saveMember, postAnnouncement } from "./actions";
 import RedirectPWAHomeToJoin from "../components/RedirectPWAHomeToJoin";
+import FloatingEventBanner from "../components/FloatingEventBanner"; 
 
 function getBaseUrlFromHeaders() {
   const h = headers();
@@ -31,16 +32,27 @@ export default function HomePage({ searchParams }: PageProps) {
   return (
     <>
       <RedirectPWAHomeToJoin />
-      <main className="mx-auto max-w-xl p-6 space-y-6">
+        <main className="mx-auto max-w-xl p-6 space-y-6">
         <h1 className="text-2xl font-semibold">Golf Community — Join</h1>
 
         {/* QR always stays visible */}
         <section className="space-y-2">
-          <QRDisplay value={qrValue} />
-          <div className="text-xs text-gray-500 break-all">
-            URL: {qrValue || "(no host detected)"}
-          </div>
-        </section>
+          <div className="flex flex-col md:flex-row gap-4 items-start">
+           {/* Left: QR + URL */}
+          <div className="flex-1">
+        <QRDisplay value={qrValue} />
+        <div className="text-xs text-gray-500 break-all mt-1">
+        URL: {qrValue || "(no host detected)"}
+        </div>
+      </div>
+
+    {/* Right: Event announcement card */}
+    <div className="flex-1 w-full">
+      <FloatingEventBanner />
+    </div>
+  </div>
+</section>
+
 
         {joined ? (
           <div className="space-y-4">
