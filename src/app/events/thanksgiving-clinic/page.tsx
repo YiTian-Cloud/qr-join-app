@@ -78,8 +78,7 @@ export default function ThanksgivingClinicPage() {
 
               <p>
                 <span className="font-semibold">Co-host:&nbsp;</span>
-                Max Choi — a rising junior golfer, future Division 1 prospect, and a
-                highly accomplished competitive pianist.
+                Maximus Choi — a nationally ranked junior golfer, PGA Jr. League leader, future Division 1 prospect, and highly accomplished competitive pianist.
               </p>
             </section>
 
