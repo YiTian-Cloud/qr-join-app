@@ -3,7 +3,7 @@ import "./globals.css";
 import ClientInit from "@/components/ClientInit";  // <-- add this
 
 export const metadata = {
-  title: "QR Groups",
+  title: "Golf Connect",
   description: "Join & manage QR groups",
 };
 
